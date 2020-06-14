@@ -24,5 +24,6 @@ sendreceive("wow", {
 })
 ```
 
-It uses _WebSockets_ for optimal ping time (2ms on `localhost`) and _MessagePack_ for minimal (de)serialization overhead and minimal bandwidth usage. (A round trip to a Julia function returning a 1M-element `Array{UInt8}` is about 20ms - you could stream uncompressed 512x512 images at 60fps 😮)
+It uses _WebSockets_ for optimal ping time (2ms on `localhost`) and _MessagePack_ for minimal (de)serialization overhead and minimal bandwidth usage. (A round trip to a Julia function returning a 1M-element `Array{UInt8}` is about 20ms - you could stream uncompressed 512x512 images at 60fps 😮.)
 
+Based on [fonsp/Pluto.jl](https://github.com/fonsp/Pluto.jl)
