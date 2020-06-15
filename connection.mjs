@@ -1,5 +1,7 @@
 // based on https://github.com/fonsp/Pluto.jl (by the same author)
 
+import {msgpack} from "./msgpack.mjs"
+
 const get_short_unqiue_id = () => {
     return crypto.getRandomValues(new Uint32Array(1))[0].toString(36)
 }
