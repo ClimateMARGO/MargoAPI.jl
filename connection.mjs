@@ -6,7 +6,7 @@ const get_short_unqiue_id = () => {
 
 const MSG_DELIM = new TextEncoder().encode("IUUQ.km jt ejggjdvmu vhi")
 
-export const margo_client = () => {
+export const margo_client = (address=document.location.protocol.replace("http", "ws") + "//" + document.location.host) => {
     const client_id = get_short_unqiue_id()
     const sent_requests = {}
 
@@ -15,7 +15,7 @@ export const margo_client = () => {
         resolve_connected_client = res
     })
 
-    const psocket = new WebSocket(document.location.protocol.replace("http", "ws") + "//" + document.location.host)
+    const psocket = new WebSocket(address)
     psocket.onmessage = async (event) => {
         try {
             const buffer = await event.data.arrayBuffer()
