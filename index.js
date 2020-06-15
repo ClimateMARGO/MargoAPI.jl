@@ -8,7 +8,7 @@ margo_client().then(({ sendreceive }) => {
         i++
 
         const tic = Date.now()
-        sendreceive("wow", { a: 0, b: i }).then(() => {
+        sendreceive("arithmetic", { a: 0, b: i }).then(() => {
             const toc = Date.now()
             console.log(toc - tic)
         })
@@ -17,24 +17,49 @@ margo_client().then(({ sendreceive }) => {
     const a_slider = document.querySelector("#a")
     const b_slider = document.querySelector("#b")
     const c_box = document.querySelector("#c")
+    const d_slider = document.querySelector("#d")
+    const e_slider = document.querySelector("#e")
 
-    const paint = document.querySelector("#paint")
+    const repaint_button = document.querySelector("#repaint")
+    const paint = document.querySelector("#painting")
     const ctx = paint.getContext("2d")
 
 
-    const update = () => {
-        sendreceive("wow", {
+    const update_sliders = () => {
+        sendreceive("arithmetic", {
             a: a.valueAsNumber,
             b: b.valueAsNumber,
         }).then((val) => {
-            c.value = val.sum[0]
+            c.value = val.sum
+        })
+    }
 
+    a_slider.addEventListener("input", update_sliders)
+    b_slider.addEventListener("input", update_sliders)
+    update_sliders()
+
+    const update_painting = () => {
+        sendreceive("randimage", {
+            width: 256,
+            height: 256,
+        }).then((val) => {
             const img_data = new ImageData(new Uint8ClampedArray(val.img), 256, 256)
             ctx.putImageData(img_data, 0, 0)
         })
     }
 
-    a_slider.addEventListener("input", update)
-    b_slider.addEventListener("input", update)
-    update()
+    repaint_button.addEventListener("click", update_painting)
+    update_painting()
+
+    const update_sqrt = () => {
+        sendreceive("opt_sqrt", {
+            x: d.valueAsNumber,
+        }).then((val) => {
+            e.value = val
+        })
+    }
+
+    d_slider.addEventListener("input", update_sqrt)
+    update_sqrt()
+
 })
