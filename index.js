@@ -1,4 +1,4 @@
-import { margo_client } from "./connection.js"
+import { margo_client } from "./connection.mjs"
 
 margo_client().then(({ sendreceive }) => {
     console.log("Connected!")
