@@ -1,4 +1,4 @@
-import JSON
+import MsgPack
 import UUIDs: UUID
 import HTTP
 import Sockets
@@ -12,57 +12,6 @@ macro expose(funcdef::Expr)
         funkies[nameof(funky)] = funky
     end
 end
-
-function Base.endswith(vec::Vector{T}, suffix::Vector{T}) where T
-    local liv = lastindex(vec)
-    local lis = lastindex(suffix)
-    liv >= lis && (view(vec, (liv-lis + 1):liv) == suffix)
-end
-
-# function Base.endswith(vec::Array{UInt8,1}, suffix::Array{UInt8,1})
-#     local liv = lastindex(vec)
-#     local lis = lastindex(suffix)
-#     liv >= lis && (view(vec, (liv-lis + 1):liv) == suffix)
-# end
-
-function Base.readuntil(stream::HTTP.WebSockets.WebSocket, delim::Vector{UInt8})
-    data = UInt8[]
-    while !endswith(data, MSG_DELIM)
-        if(eof(stream))
-            if isempty(data)
-                @warn "What is this"
-                return data
-            end
-            @warn "Unexpected eof after" data
-            return data
-        end
-        push!(data, readavailable(stream)...)
-    end
-    return data[1:end-length(delim)]
-end
-
-mutable struct Client
-    id::Symbol
-    stream::Any
-    pendingupdates::Channel
-end
-Client(id::Symbol, stream) = let
-    Client(id, stream, Channel(1024))
-end
-
-struct Initiator
-    client_id::Symbol
-    request_id::Symbol
-end
-
-struct UpdateMessage
-    type::Symbol
-    message::Any
-    initiator::Initiator
-end
-UpdateMessage(type::Symbol, message::Any) = UpdateMessage(type, message, missing)
-
-
 
 
 "Attempts to find the MIME pair corresponding to the extension of a filename. Defaults to `text/plain`."
@@ -96,21 +45,43 @@ function serve_asset(req::HTTP.Request)
 end
 
 
-
-
-
-
-
 # https://github.com/JuliaWeb/HTTP.jl/issues/382
-const flushtoken = Channel{Nothing}(1)
-put!(flushtoken, nothing)
+const streamtokens = WeakKeyDict{IO, Channel}()
 
+
+function create_flushtoken()
+    flushtoken = Channel{Nothing}(1)
+    put!(flushtoken, nothing)
+    return flushtoken
+end
 
 const MSG_DELIM = "IUUQ.km jt ejggjdvmu vhi" |> codeunits |> collect # riddle me this, Julius
 
 function write_serialized(io::IO, x::Any)
     write(io, MsgPack.pack(x), MSG_DELIM)
     
+end
+
+function Base.endswith(vec::Vector{T}, suffix::Vector{T}) where T
+    local liv = lastindex(vec)
+    local lis = lastindex(suffix)
+    liv >= lis && (view(vec, (liv-lis + 1):liv) == suffix)
+end
+
+function Base.readuntil(stream::HTTP.WebSockets.WebSocket, delim::Vector{UInt8})
+    data = UInt8[]
+    while !endswith(data, MSG_DELIM)
+        if(eof(stream))
+            if isempty(data)
+                @warn "What is this"
+                return data
+            end
+            @warn "Unexpected eof after" data
+            return data
+        end
+        push!(data, readavailable(stream)...)
+    end
+    return data[1:end-length(delim)]
 end
 
 """Start a Pluto server _synchronously_ (i.e. blocking call) on `http://localhost:[port]/`.
@@ -207,6 +178,8 @@ end
 
 run(port::Integer=1234; kwargs...) = run("127.0.0.1", port; kwargs...)
 
+# MsgPack returns numbers in the most efficient type (Int8, ..., UInt64),
+# we always want Int64 to keep things simple
 function withmorebits(d::Dict)
     Dict((p.first => withmorebits(p.second)
         for p in d))
@@ -223,13 +196,25 @@ end
 
 function process_ws_message(parentbody::Dict{Any, Any}, clientstream::HTTP.WebSockets.WebSocket)
     client_id = Symbol(parentbody["client_id"])
-    
+
+    # every stream has a `token` which only one async task can have at one time (like a semaphore)
+    # this ensures that no two tasks write to the same client stream at the same time
+    flushtoken = let
+        t = get(streamtokens, clientstream, nothing)
+        if t === nothing
+            streamtokens[clientstream] = create_flushtoken()
+        else
+            t
+        end
+    end
+
     messagetype = Symbol(parentbody["type"])
     request_id = Symbol(parentbody["request_id"])
 
     body = parentbody["body"]
     body_parsed = (Symbol(p.first) => withmorebits(p.second) for p in body)
 
+    # Find the requested function and call it with the given arguments:
     result = funkies[messagetype](;body_parsed...)
 
     token = take!(flushtoken)

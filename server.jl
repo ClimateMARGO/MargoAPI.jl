@@ -1,6 +1,5 @@
 import Dates: isleapyear, Date
 import HTTP
-import MsgPack
 
 include("./boring.jl")
 

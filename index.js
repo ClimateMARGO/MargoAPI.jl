@@ -3,16 +3,16 @@ import { margo_client } from "./connection.js"
 margo_client().then(({ sendreceive }) => {
     console.log("Connected!")
 
-    // var i = 0
-    // setInterval(() => {
-    //     i++
+    var i = 0
+    setInterval(() => {
+        i++
 
-    //     const tic = Date.now()
-    //     sendreceive("wow", { a: 0, b: i }).then(() => {
-    //         const toc = Date.now()
-    //         console.log(toc - tic)
-    //     })
-    // }, 1000)
+        const tic = Date.now()
+        sendreceive("wow", { a: 0, b: i }).then(() => {
+            const toc = Date.now()
+            console.log(toc - tic)
+        })
+    }, 1000)
 
     const a_slider = document.querySelector("#a")
     const b_slider = document.querySelector("#b")
