@@ -1,6 +1,6 @@
 // based on https://github.com/fonsp/Pluto.jl (by the same author)
 
-import { msgpack } from "./msgpack.mjs"
+import  msgpack from "https://cdn.jsdelivr.net/gh/fonsp/msgpack-lite@0.1.27-es.1/dist/msgpack-es.min.mjs"
 
 const timeout_promise = (promise, time_ms) =>
     Promise.race([
