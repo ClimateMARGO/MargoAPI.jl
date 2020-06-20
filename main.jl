@@ -4,26 +4,26 @@ end
 
 include("./server.jl")
 
+using ClimateMARGO
 
-using JuMP
-import Ipopt
+# some silly code to make our custom types work with MsgPack (JSON alternative)
+import MsgPack
+MsgPack.msgpack_type(::Type{ClimateMARGO.ClimateModel}) = MsgPack.StructType()
+MsgPack.msgpack_type(::Type{ClimateMARGO.Economics}) = MsgPack.StructType()
+MsgPack.msgpack_type(::Type{ClimateMARGO.Physics}) = MsgPack.StructType()
+MsgPack.msgpack_type(::Type{ClimateMARGO.Controls}) = MsgPack.StructType()
 
-model = Model(optimizer_with_attributes(Ipopt.Optimizer,
-"acceptable_tol" => 1.e-8, "max_iter" => Int64(1e8),
-"acceptable_constr_viol_tol" => 1.e-3, "constr_viol_tol" => 1.e-4,
-"print_frequency_iter" => 50,  "print_timing_statistics" => "no",
-"print_level" => 0,
-))
 
-@variable(model, 0 <= root)
-
-@expose function opt_sqrt(;x)
-    @NLobjective(model, Min, (root^2 - x)^2)
-    optimize!(model)
-
-    value(root)
+# the main margo function
+# has only to parameters for now, but this will be _all parameters_ soon
+@expose function opt_controls_temp(;dt=20, T_max)
+    t = 2020.0:dt:2200.0
+    model = ClimateModel(; t=collect(t), dt=step(t))
+    optimize_controls!(model; temp_goal=T_max)
+    return model
 end
 
+# simple function as baseline for connection speed
 @expose function arithmetic(;a, b)
     Dict(
         :sum => a + b,
@@ -38,4 +38,5 @@ end
     )
 end
 
+# start running the server
 run(ARGS[1], parse(Int64, ARGS[2]))

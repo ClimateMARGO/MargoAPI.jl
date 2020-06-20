@@ -3,16 +3,16 @@ import { margo_client } from "./connection.mjs"
 margo_client().then(({ sendreceive }) => {
     console.log("Connected!")
 
-    var i = 0
-    setInterval(() => {
-        i++
+    // var i = 0
+    // setInterval(() => {
+    //     i++
 
-        const tic = Date.now()
-        sendreceive("arithmetic", { a: 0, b: i }).then(() => {
-            const toc = Date.now()
-            console.log(toc - tic)
-        })
-    }, 1000)
+    //     const tic = Date.now()
+    //     sendreceive("arithmetic", { a: 0, b: i }).then(() => {
+    //         const toc = Date.now()
+    //         console.log(toc - tic)
+    //     })
+    // }, 1000)
 
     const a_slider = document.querySelector("#a")
     const b_slider = document.querySelector("#b")
@@ -23,7 +23,6 @@ margo_client().then(({ sendreceive }) => {
     const repaint_button = document.querySelector("#repaint")
     const paint = document.querySelector("#painting")
     const ctx = paint.getContext("2d")
-
 
     const update_sliders = () => {
         sendreceive("arithmetic", {
@@ -52,14 +51,11 @@ margo_client().then(({ sendreceive }) => {
     update_painting()
 
     const update_sqrt = () => {
-        sendreceive("opt_sqrt", {
-            x: d.valueAsNumber,
-        }).then((val) => {
-            e.value = val
-        })
+        sendreceive("opt_controls_temp", {
+            T_max: d.valueAsNumber,
+        }).then(console.log)
     }
 
     d_slider.addEventListener("input", update_sqrt)
     update_sqrt()
-
 })

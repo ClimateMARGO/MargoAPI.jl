@@ -1,21 +1,26 @@
 <html>
+<html lang="en">
+
 <head>
+    <meta charset="utf-8" />
+    <title>MARGO Climate Model</title>
     <script src="./index.js" type="module"></script>
 </head>
 
 <body>
     <h1>Hello</h1>
 
-    <input id='a' type='range' min='0' max='1000' >
-    <input id='b' type='range' min='0' max='1000' >
+    <input id='a' type='range' min='0' max='1000'>
+    <input id='b' type='range' min='0' max='1000'>
 
-    <input id='c' type='range' min='0' max='2000' disabled >
+    <input id='c' type='range' min='0' max='2000' disabled>
     <br>
-    
-    <input id='d' type='range' min='0' max='1000' >
-    <input id='e' type='range' min='0' max='100' disabled >
+
+    <p>0.0 C <input id='d' type='range' min='0' max='4' step='0.01'>
+        4.0 C</p>
     <br>
     <button id='repaint'>New image</button>
     <canvas id="painting" width="256" height="256"></canvas>
 </body>
+
 </html>
