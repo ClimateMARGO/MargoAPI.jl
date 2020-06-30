@@ -1,6 +1,26 @@
 // based on https://github.com/fonsp/Pluto.jl (by the same author)
 
-import  msgpack from "https://cdn.jsdelivr.net/gh/fonsp/msgpack-lite@0.1.27-es.1/dist/msgpack-es.min.mjs"
+// Polyfill for Blob::arrayBuffer when there is none (safari)
+if (Blob.prototype.arrayBuffer == null) {
+    Blob.prototype.arrayBuffer = function () {
+        const reader = new FileReader()
+        const promise = new Promise((resolve, reject) => {
+            // on read success
+            reader.onload = () => {
+                resolve(reader.result)
+            }
+            // on failure
+            reader.onerror = (e) => {
+                reader.abort()
+                reject(e)
+            }
+        })
+        reader.readAsArrayBuffer(this)
+        return promise
+    }
+}
+
+import msgpack from "https://cdn.jsdelivr.net/gh/fonsp/msgpack-lite@0.1.27-es.1/dist/msgpack-es.min.mjs"
 
 const timeout_promise = (promise, time_ms) =>
     Promise.race([
@@ -68,7 +88,7 @@ export const margo_client = async (address = document.location.protocol.replace(
     }
 
     var socket = await timeout_promise(create_ws(), 10000)
-    
+
     const sendreceive = (message_type, body) => {
         var resolve, reject
 
@@ -105,7 +125,6 @@ export const margo_client = async (address = document.location.protocol.replace(
 
         return p
     }
-    
 
     return {
         sendreceive: sendreceive,
