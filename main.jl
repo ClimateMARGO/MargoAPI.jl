@@ -19,7 +19,7 @@ MsgPack.msgpack_type(::Type{ClimateMARGO.Controls}) = MsgPack.StructType()
 @expose function opt_controls_temp(;dt=20, T_max)
     t = 2020.0:dt:2200.0
     model = ClimateModel(; t=collect(t), dt=step(t))
-    optimize_controls!(model; temp_goal=T_max)
+    model_optimizer = optimize_controls!(model; temp_goal=T_max, print_raw_status=false)
     return Dict(
         :model => model,
         :computed => Dict(
@@ -45,7 +45,8 @@ MsgPack.msgpack_type(::Type{ClimateMARGO.Controls}) = MsgPack.StructType()
                 :discounted_cost => discounted_control_cost(model),
                 :total_discounted_cost => discounted_total_control_cost(model),
             ),
-        )
+        ),
+        :status => ClimateMARGO.JuMP.termination_status(model_optimizer) |> string
     )
 end
 
