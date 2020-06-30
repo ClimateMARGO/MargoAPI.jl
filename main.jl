@@ -15,12 +15,38 @@ MsgPack.msgpack_type(::Type{ClimateMARGO.Controls}) = MsgPack.StructType()
 
 
 # the main margo function
-# has only to parameters for now, but this will be _all parameters_ soon
+# has only two parameters for now, but this will be _all parameters_ soon
 @expose function opt_controls_temp(;dt=20, T_max)
     t = 2020.0:dt:2200.0
     model = ClimateModel(; t=collect(t), dt=step(t))
     optimize_controls!(model; temp_goal=T_max)
-    return model
+    return Dict(
+        :model => model,
+        :computed => Dict(
+            :temperatures => Dict(
+                :baseline => δT_baseline(model),
+                :MR => δT_no_geoeng(model),
+                :MRG => δT(model),
+                :MRGA => δT(model) .* sqrt.(1. .- model.controls.adapt),
+            ),
+            :emissions => Dict(
+                :baseline => effective_baseline_emissions(model),
+                :controlled => effective_emissions(model),
+            ),
+            :concentrations => Dict(
+                :baseline => CO₂_baseline(model),
+                :controlled => CO₂(model),
+            ),
+            :damages => Dict(
+                :discounted_cost => discounted_damage_cost(model),
+                :total_discounted_cost => discounted_total_damage_cost(model),
+            ),
+            :controls => Dict(
+                :discounted_cost => discounted_control_cost(model),
+                :total_discounted_cost => discounted_total_control_cost(model),
+            ),
+        )
+    )
 end
 
 # simple function as baseline for connection speed
