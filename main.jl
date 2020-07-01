@@ -1,7 +1,3 @@
-if length(ARGS) != 2
-    error("Usage: julia thisfile.jl 127.0.0.1 1234")
-end
-
 include("./server.jl")
 
 using ClimateMARGO
@@ -38,15 +34,28 @@ MsgPack.msgpack_type(::Type{ClimateMARGO.Controls}) = MsgPack.StructType()
                 :controlled => CO₂(model),
             ),
             :damages => Dict(
-                :discounted_cost => discounted_damage_cost(model),
-                :total_discounted_cost => discounted_total_damage_cost(model),
+                :baseline => costs_dict(damage_cost_baseline(model), model),
+                :controlled => costs_dict(damage_cost(model), model),
             ),
-            :controls => Dict(
-                :discounted_cost => discounted_control_cost(model),
-                :total_discounted_cost => discounted_total_control_cost(model),
+            :costs => Dict(
+                :M => costs_dict(model.economics.mitigate_cost .* model.economics.GWP .* f(model.controls.mitigate), model),
+                :R => costs_dict(model.economics.remove_cost .* f(model.controls.remove), model),
+                :G => costs_dict(model.economics.geoeng_cost .* model.economics.GWP .* f(model.controls.geoeng), model),
+                :A => costs_dict(model.economics.adapt_cost .* f(model.controls.adapt), model),
+                :controlled => costs_dict(control_cost(model), model),
             ),
         ),
         :status => ClimateMARGO.JuMP.termination_status(model_optimizer) |> string
+    )
+end
+
+function costs_dict(costs, model)
+    disc = discounting(model) .* costs
+    Dict(
+        # :costs => costs,
+        # :total_costs => sum(costs .* model.dt),
+        :discounted => disc,
+        :total_discounted => sum(disc .* model.dt),
     )
 end
 
@@ -64,6 +73,3 @@ end
         :img => img,
     )
 end
-
-# start running the server
-run(ARGS[1], parse(Int64, ARGS[2]))
