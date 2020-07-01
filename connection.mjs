@@ -100,7 +100,7 @@ export const margo_client = async (address = document.location.protocol.replace(
         if (socket.readyState !== WebSocket.OPEN) {
             console.log("MARGO ws is not open")
             console.log("Reconnecting socket...")
-            return timeout_promise(create_ws(), 1000).then((new_socket) => {
+            return timeout_promise(create_ws(), 10000).then((new_socket) => {
                 socket = new_socket
                 return sendreceive(message_type, body)
             })
