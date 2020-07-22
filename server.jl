@@ -4,7 +4,7 @@ import HTTP
 import Sockets
 
 "Will hold all 'response handlers': functions that respond to a WebSocket request from the client. These are defined in `src/webserver/Dynamic.jl`."
-const funkies = Dict{Symbol, Function}()
+const funkies = Dict{Symbol,Function}()
 
 macro expose(funcdef::Expr)
     quote
@@ -36,7 +36,7 @@ function assetresponse(path)
 end
 
 function serve_onefile(path)
-    return request::HTTP.Request->assetresponse(normpath(path))
+    return request::HTTP.Request -> assetresponse(normpath(path))
 end
 
 function serve_asset(req::HTTP.Request)
@@ -48,7 +48,7 @@ end
 
 
 # https://github.com/JuliaWeb/HTTP.jl/issues/382
-const streamtokens = WeakKeyDict{IO, Channel}()
+const streamtokens = WeakKeyDict{IO,Channel}()
 
 
 function create_flushtoken()
@@ -67,13 +67,13 @@ end
 function Base.endswith(vec::Vector{T}, suffix::Vector{T}) where T
     local liv = lastindex(vec)
     local lis = lastindex(suffix)
-    liv >= lis && (view(vec, (liv-lis + 1):liv) == suffix)
+    liv >= lis && (view(vec, (liv - lis + 1):liv) == suffix)
 end
 
 function Base.readuntil(stream::HTTP.WebSockets.WebSocket, delim::Vector{UInt8})
     data = UInt8[]
     while !endswith(data, MSG_DELIM)
-        if(eof(stream))
+        if (eof(stream))
             if isempty(data)
                 @warn "What is this"
                 return data
@@ -83,7 +83,7 @@ function Base.readuntil(stream::HTTP.WebSockets.WebSocket, delim::Vector{UInt8})
         end
         push!(data, readavailable(stream)...)
     end
-    return data[1:end-length(delim)]
+    return data[1:end - length(delim)]
 end
 
 """Start a Pluto server _synchronously_ (i.e. blocking call) on `http://localhost:[port]/`.
@@ -92,7 +92,7 @@ This will start a WebSocket server. Pluto Notebooks will be started dynamically 
 function run(host, port::Integer)
     hostIP = parse(Sockets.IPAddr, host)
     serversocket = Sockets.listen(hostIP, UInt16(port))
-    servertask = @async HTTP.serve(hostIP, UInt16(port), stream = true, server = serversocket) do http::HTTP.Stream
+    servertask = @async HTTP.serve(hostIP, UInt16(port), stream=true, server=serversocket) do http::HTTP.Stream
         # messy messy code so that we can use the websocket on the same port as the HTTP server
 
         if HTTP.WebSockets.is_upgrade(http.message)
@@ -103,12 +103,13 @@ function run(host, port::Integer)
                     end
                     while !eof(clientstream)
                         # This stream contains data received over the WebSocket.
-                        # It is formatted and JSON-encoded by send(...) in editor.html
+                        # It is formatted and encoded by connection.mjs
                         try
                             parentbody = let
                                 data = readuntil(clientstream, MSG_DELIM)
                                 MsgPack.unpack(data)
                             end
+                            # Pass the message to one of the user-defined response functions
                             process_ws_message(parentbody, clientstream)
                         catch ex
                             if ex isa InterruptException
@@ -120,7 +121,7 @@ function run(host, port::Integer)
                                 # TODO: remove this switch
                             else
                                 bt = stacktrace(catch_backtrace())
-                                @warn "Reading WebSocket client stream failed for unknown reason:" exception=(ex,bt)
+                                @warn "Reading WebSocket client stream failed for unknown reason:" exception = (ex, bt)
                             end
                         end
                     end
@@ -134,10 +135,11 @@ function run(host, port::Integer)
                     # that's fine!
                 else
                     bt = stacktrace(catch_backtrace())
-                    @warn "HTTP upgrade failed for unknown reason" exception=(ex,bt)
+                    @warn "HTTP upgrade failed for unknown reason" exception = (ex, bt)
                 end
             end
         else
+            # not a WS connection, so we serve a local file:
             request::HTTP.Request = http.message
             HTTP.closeread(http)
             response_body = serve_asset(http.message)
@@ -151,6 +153,7 @@ function run(host, port::Integer)
         end
     end
 
+    # print address to console:
     root_url = get(ENV, "PLUTO_ROOT_URL", "/")
     address = if root_url == "/"
         hostPretty = (hostStr = string(hostIP)) == "127.0.0.1" ? "localhost" : hostStr
@@ -186,7 +189,7 @@ function withmorebits(d::Dict)
     Dict((p.first => withmorebits(p.second)
         for p in d))
 end
-function withmorebits(x::T) where T<:Integer
+function withmorebits(x::T) where T <: Integer
     Int64(x)
 end
 function withmorebits(x::Vector)
@@ -196,7 +199,8 @@ function withmorebits(x::Any)
     x
 end
 
-function process_ws_message(parentbody::Dict{Any, Any}, clientstream::HTTP.WebSockets.WebSocket)
+"Respond to a message from JS."
+function process_ws_message(parentbody::Dict{Any,Any}, clientstream::HTTP.WebSockets.WebSocket)
     client_id = Symbol(parentbody["client_id"])
 
     # every stream has a `token` which only one async task can have at one time (like a semaphore)
@@ -219,17 +223,19 @@ function process_ws_message(parentbody::Dict{Any, Any}, clientstream::HTTP.WebSo
     # Find the requested function and call it with the given arguments:
     result = funkies[messagetype](;body_parsed...)
 
+    # We use a blocking channel (`flushtoken`) to ensure that at most one async process is writing to the HTTP stream at once. HTTP.jl doesn't do this automatically :(
+    # This can be improved by using one token per stream, instead of one shared token. (I've tested it and it works.)
     token = take!(flushtoken)
     try
         if clientstream !== nothing
             if isopen(clientstream)
                 clientstream.frame_type = HTTP.WebSockets.WS_BINARY
+                # Send back the original request_id so that JS can return it to the original (async) request
                 write_serialized(clientstream, Dict(
                     :initiator_id => client_id,
                     :request_id => request_id,
                     :body => result,
                 ))
-                # write_serialized(clientstream, 123)
             else
                 @info "Client $(client_id) stream closed."
                 put!(flushtoken, token)
@@ -240,7 +246,7 @@ function process_ws_message(parentbody::Dict{Any, Any}, clientstream::HTTP.WebSo
         if ex isa Base.IOError
             # client socket closed, so we return false (about 5 lines after this one)
         else
-            @warn "Failed to write to WebSocket of $(client_id) " exception=(ex,bt)
+            @warn "Failed to write to WebSocket of $(client_id) " exception = (ex, bt)
         end
     end
     put!(flushtoken, token)

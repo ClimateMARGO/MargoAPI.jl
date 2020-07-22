@@ -27,6 +27,7 @@ MsgPack.msgpack_type(::Type{ClimateMARGO.Controls}) = MsgPack.StructType()
             ),
             :emissions => Dict(
                 :baseline => effective_baseline_emissions(model),
+                # TODO: MR
                 :controlled => effective_emissions(model),
             ),
             :concentrations => Dict(
