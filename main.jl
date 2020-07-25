@@ -40,11 +40,12 @@ MsgPack.msgpack_type(::Type{Controls}) = MsgPack.StructType()
             ),
             :emissions => Dict(
                 :baseline => effective_emissions(model),
-                # TODO: MR
+                :M => effective_emissions(model; M=true),
                 :MRGA => effective_emissions(model; M=true, R=true),
             ),
             :concentrations => Dict(
                 :baseline => c(model),
+                :M => c(model; M=true),
                 :MRGA => c(model; M=true, R=true),
             ),
             :damages => Dict(
