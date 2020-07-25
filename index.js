@@ -52,7 +52,10 @@ margo_client().then(({ sendreceive }) => {
 
     const update_opt = () => {
         sendreceive("opt_controls_temp", {
-            T_max: d_slider.valueAsNumber,
+            opt_parameters: {
+                temp_goal: 999,
+                temp_final: d_slider.valueAsNumber,
+            },
         }).then(console.log)
     }
 

@@ -2,6 +2,6 @@
 println("Warm-up start")
 
 include("./main.jl")
-opt_controls_temp(;T_max=2.0)
+opt_controls_temp(;opt_parameters=Dict("temp_goal" => 2.0))
 
 println("Warm-up done")
