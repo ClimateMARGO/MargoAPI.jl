@@ -26,10 +26,10 @@ margo_client().then(({ sendreceive }) => {
 
     const update_sliders = () => {
         sendreceive("arithmetic", {
-            a: a.valueAsNumber,
-            b: b.valueAsNumber,
+            a: a_slider.valueAsNumber,
+            b: b_slider.valueAsNumber,
         }).then((val) => {
-            c.value = val.sum
+            c_box.value = val.sum
         })
     }
 
@@ -50,12 +50,12 @@ margo_client().then(({ sendreceive }) => {
     repaint_button.addEventListener("click", update_painting)
     update_painting()
 
-    const update_sqrt = () => {
+    const update_opt = () => {
         sendreceive("opt_controls_temp", {
-            T_max: d.valueAsNumber,
+            T_max: d_slider.valueAsNumber,
         }).then(console.log)
     }
 
-    d_slider.addEventListener("input", update_sqrt)
-    update_sqrt()
+    d_slider.addEventListener("input", update_opt)
+    update_opt()
 })

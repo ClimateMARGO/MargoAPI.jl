@@ -1,62 +1,69 @@
 include("./server.jl")
 
-using ClimateMARGO
+import ClimateMARGO
+using ClimateMARGO.Models
+using ClimateMARGO.Optimization
+using ClimateMARGO.Diagnostics
 
 # some silly code to make our custom types work with MsgPack (JSON alternative)
 import MsgPack
-MsgPack.msgpack_type(::Type{ClimateMARGO.ClimateModel}) = MsgPack.StructType()
-MsgPack.msgpack_type(::Type{ClimateMARGO.Economics}) = MsgPack.StructType()
-MsgPack.msgpack_type(::Type{ClimateMARGO.Physics}) = MsgPack.StructType()
-MsgPack.msgpack_type(::Type{ClimateMARGO.Controls}) = MsgPack.StructType()
+MsgPack.msgpack_type(::Type{ClimateModel}) = MsgPack.StructType()
+MsgPack.msgpack_type(::Type{ClimateModelParameters}) = MsgPack.StructType()
+MsgPack.msgpack_type(::Type{Domain}) = MsgPack.StructType()
+MsgPack.msgpack_type(::Type{Economics}) = MsgPack.StructType()
+MsgPack.msgpack_type(::Type{Physics}) = MsgPack.StructType()
+MsgPack.msgpack_type(::Type{Controls}) = MsgPack.StructType()
 
 
 # the main margo function
 # has only two parameters for now, but this will be _all parameters_ soon
 @expose function opt_controls_temp(;dt=20, T_max)
-    t = 2020.0:dt:2200.0
-    model = ClimateModel(; t=collect(t), dt=step(t))
+    model_parameters = deepcopy(ClimateMARGO.IO.included_configurations["default"])
+    model_parameters.domain = Domain(Float64(dt), 2020.0, 2200.0)
+    model_parameters.economics.baseline_emissions = ramp_emissions(model_parameters.domain)
+    model_parameters.economics.extra_CO₂ = zeros(size(model_parameters.economics.baseline_emissions))
+
+    model = ClimateModel(model_parameters)
     model_optimizer = optimize_controls!(model; temp_goal=T_max, print_raw_status=false)
     return Dict(
-        :model => model,
+        :model_parameters => model_parameters,
         :computed => Dict(
             :temperatures => Dict(
-                :baseline => δT_baseline(model),
-                :MR => δT_no_geoeng(model),
-                :MRG => δT(model),
-                :MRGA => δT(model) .* sqrt.(1. .- model.controls.adapt),
+                :baseline => T(model),
+                :M => T(model; M=true),
+                :MR => T(model; M=true, R=true),
+                :MRG => T(model; M=true, R=true, G=true),
+                :MRGA => T(model; M=true, R=true, G=true, A=true),
             ),
             :emissions => Dict(
-                :baseline => effective_baseline_emissions(model),
+                :baseline => effective_emissions(model),
                 # TODO: MR
-                :controlled => effective_emissions(model),
+                :MRGA => effective_emissions(model; M=true, R=true),
             ),
             :concentrations => Dict(
-                :baseline => CO₂_baseline(model),
-                :controlled => CO₂(model),
+                :baseline => c(model),
+                :MRGA => c(model; M=true, R=true),
             ),
             :damages => Dict(
-                :baseline => costs_dict(damage_cost_baseline(model), model),
-                :controlled => costs_dict(damage_cost(model), model),
+                :baseline => costs_dict(damage(model; discounting=true), model),
+                :MRGA => costs_dict(damage(model; M=true, R=true, G=true, A=true, discounting=true), model),
             ),
             :costs => Dict(
-                :M => costs_dict(model.economics.mitigate_cost .* model.economics.GWP .* f(model.controls.mitigate), model),
-                :R => costs_dict(model.economics.remove_cost .* f(model.controls.remove), model),
-                :G => costs_dict(model.economics.geoeng_cost .* model.economics.GWP .* f(model.controls.geoeng), model),
-                :A => costs_dict(model.economics.adapt_cost .* f(model.controls.adapt), model),
-                :controlled => costs_dict(control_cost(model), model),
+                :M => costs_dict(cost(model; M=true, discounting=true), model),
+                :R => costs_dict(cost(model; R=true, discounting=true), model),
+                :G => costs_dict(cost(model; G=true, discounting=true), model),
+                :A => costs_dict(cost(model; A=true, discounting=true), model),
+                :MRGA => costs_dict(cost(model; M=true, R=true, G=true, A=true, discounting=true), model),
             ),
         ),
-        :status => ClimateMARGO.JuMP.termination_status(model_optimizer) |> string
+        :status => ClimateMARGO.Optimization.JuMP.termination_status(model_optimizer) |> string
     )
 end
 
 function costs_dict(costs, model)
-    disc = discounting(model) .* costs
     Dict(
-        # :costs => costs,
-        # :total_costs => sum(costs .* model.dt),
-        :discounted => disc,
-        :total_discounted => sum(disc .* model.dt),
+        :discounted => costs,
+        :total_discounted => sum(costs .* model.domain.dt),
     )
 end
 
