@@ -17,11 +17,18 @@ MsgPack.msgpack_type(::Type{Controls}) = MsgPack.StructType()
 
 # the main margo function
 # has only two parameters for now, but this will be _all parameters_ soon
-@expose function opt_controls_temp(;dt=20, opt_parameters)
+@expose function opt_controls_temp(;dt=20, opt_parameters, enable=Dict())
     model_parameters = deepcopy(ClimateMARGO.IO.included_configurations["default"])
     model_parameters.domain = Domain(Float64(dt), 2020.0, 2200.0)
     model_parameters.economics.baseline_emissions = ramp_emissions(model_parameters.domain)
     model_parameters.economics.extra_CO₂ = zeros(size(model_parameters.economics.baseline_emissions))
+
+    enable_merged = merge(Dict("M" => true, "R" => true, "G" => true, "A" => true), enable)
+
+    enable_merged["M"] || (model_parameters.economics.mitigate_cost = typemax(Float64))
+    enable_merged["R"] || (model_parameters.economics.remove_cost = typemax(Float64))
+    enable_merged["G"] || (model_parameters.economics.geoeng_cost = typemax(Float64))
+    enable_merged["A"] || (model_parameters.economics.adapt_cost = typemax(Float64))
 
     model = ClimateModel(model_parameters)
 
