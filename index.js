@@ -53,8 +53,17 @@ margo_client().then(({ sendreceive }) => {
     const update_opt = () => {
         sendreceive("opt_controls_temp", {
             opt_parameters: {
-                temp_goal: 999,
+                temp_goal: d_slider.valueAsNumber,
                 temp_final: d_slider.valueAsNumber,
+                max_deployment: {
+                    mitigate: 1,
+                    remove: 0,
+                    geoeng: 0,
+                    adapt: 0,
+                },
+            },
+            economics: {
+                mitigate_cost: 1,
             },
         }).then(console.log)
     }

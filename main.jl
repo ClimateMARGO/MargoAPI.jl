@@ -14,22 +14,24 @@ MsgPack.msgpack_type(::Type{Economics}) = MsgPack.StructType()
 MsgPack.msgpack_type(::Type{Physics}) = MsgPack.StructType()
 MsgPack.msgpack_type(::Type{Controls}) = MsgPack.StructType()
 
-
+function setfieldconvert!(value, name::Symbol, x)
+    setfield!(value, name, convert(typeof(getfield(value, name)), x))
+end
 # the main margo function
 # has only two parameters for now, but this will be _all parameters_ soon
-@expose function opt_controls_temp(;dt=20, opt_parameters, enable=Dict())
-    model_parameters = deepcopy(ClimateMARGO.IO.included_configurations["default"])
+@expose function opt_controls_temp(;dt=20, opt_parameters, economics=Dict(), physics=Dict())
+    model_parameters = deepcopy(ClimateMARGO.IO.included_configurations["default"])::ClimateModelParameters
     model_parameters.domain = Domain(Float64(dt), 2020.0, 2200.0)
     model_parameters.economics.baseline_emissions = ramp_emissions(model_parameters.domain)
     model_parameters.economics.extra_CO₂ = zeros(size(model_parameters.economics.baseline_emissions))
 
-    enable_merged = merge(Dict("M" => true, "R" => true, "G" => true, "A" => true), enable)
-
-    enable_merged["M"] || (model_parameters.economics.mitigate_cost = typemax(Float64))
-    enable_merged["R"] || (model_parameters.economics.remove_cost = typemax(Float64))
-    enable_merged["G"] || (model_parameters.economics.geoeng_cost = typemax(Float64))
-    enable_merged["A"] || (model_parameters.economics.adapt_cost = typemax(Float64))
-
+    for (k, v) in economics
+        setfieldconvert!(model_parameters.economics, Symbol(k), v)
+    end
+    for (k, v) in physics
+        setfieldconvert!(model_parameters.physics, Symbol(k), v)
+    end
+    
     model = ClimateModel(model_parameters)
 
     parsed = Dict((Symbol(k) => v) for (k, v) in opt_parameters)
