@@ -189,8 +189,11 @@ function withmorebits(d::Dict)
     Dict((p.first => withmorebits(p.second)
         for p in d))
 end
-function withmorebits(x::T) where T <: Integer
+function withmorebits(x::T) where T <: Union{Signed,Unsigned}
     Int64(x)
+end
+function withmorebits(x::T) where T <: AbstractFloat
+    Float64(x)
 end
 function withmorebits(x::Vector)
     withmorebits.(x)
