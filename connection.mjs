@@ -67,48 +67,42 @@ export const margo_client = async (address = document.location.protocol.replace(
     const sent_requests = {}
 
     const create_ws = () => {
-        var resolve_socket, reject_socket
-
-        const p = new Promise((res, rej) => {
-            resolve_socket = res
-            reject_socket = rej
-        })
-
-        const socket = new WebSocket(address)
-        socket.onmessage = async (event) => {
-            try {
-                const buffer = await event.data.arrayBuffer()
-                const buffer_sliced = buffer.slice(0, buffer.byteLength - MSG_DELIM.length)
-                const update = msgpack.decode(new Uint8Array(buffer_sliced))
-                const by_me = update.initiator_id && update.initiator_id == client_id
-                const request_id = update.request_id
-                if (by_me && request_id) {
-                    const request = sent_requests[request_id]
-                    if (request) {
-                        request(update.body)
-                        delete sent_requests[request_id]
-                        return
+        return new Promise((resolve_socket, reject_socket) => {
+            const socket = new WebSocket(address)
+            socket.onmessage = async (event) => {
+                try {
+                    const buffer = await event.data.arrayBuffer()
+                    const buffer_sliced = buffer.slice(0, buffer.byteLength - MSG_DELIM.length)
+                    const update = msgpack.decode(new Uint8Array(buffer_sliced))
+                    const by_me = update.initiator_id && update.initiator_id == client_id
+                    const request_id = update.request_id
+                    if (by_me && request_id) {
+                        const request = sent_requests[request_id]
+                        if (request) {
+                            request(update.body)
+                            delete sent_requests[request_id]
+                            return
+                        }
                     }
+                    console.log("Unrequested update:")
+                    console.log(update)
+                } catch (ex) {
+                    console.error("Failed to get update!", ex)
+                    console.log(event)
                 }
-                console.log("Unrequested update:")
-                console.log(update)
-            } catch (ex) {
-                console.error("Failed to get update!", ex)
-                console.log(event)
             }
-        }
-        socket.onerror = (e) => {
-            console.warn("SOCKET ERROR")
-            console.log(e)
-            reject_socket(e)
-        }
-        socket.onclose = (e) => {
-            console.warn("SOCKET CLOSED")
-            console.log(e)
-            reject_socket(e)
-        }
-        socket.onopen = () => resolve_socket(socket)
-        return p
+            socket.onerror = (e) => {
+                console.warn("SOCKET ERROR")
+                console.log(e)
+                reject_socket(e)
+            }
+            socket.onclose = (e) => {
+                console.warn("SOCKET CLOSED")
+                console.log(e)
+                reject_socket(e)
+            }
+            socket.onopen = () => resolve_socket(socket)
+        })
     }
 
     var socket = await timeout_promise(create_ws(), 10000)
@@ -121,43 +115,36 @@ export const margo_client = async (address = document.location.protocol.replace(
      * @return {Promise<any>} Promise that resolves to the Julia response
      */
     const sendreceive = (message_type, body) => {
-        var resolve, reject
+        return new Promise((resolve, reject) => {
+            if (socket.readyState !== WebSocket.OPEN) {
+                console.log("MARGO ws is not open")
+                console.log("Reconnecting socket...")
+                // The connection is broken, so create a new websocket and await the result
+                return timeout_promise(create_ws(), 10000).then((new_socket) => {
+                    // Once we have a new websocket, we try again:
+                    socket = new_socket
+                    return sendreceive(message_type, body)
+                })
+            }
 
-        const p = new Promise((res, rej) => {
-            resolve = res
-            reject = rej
+            // Every request has an ID (different from the client ID), so that Julia can send back responses to specific JS requests
+            const request_id = get_short_unqiue_id()
+
+            var toSend = {
+                type: message_type,
+                client_id: client_id,
+                request_id: request_id,
+                body: body,
+            }
+
+            sent_requests[request_id] = resolve
+
+            const encoded = msgpack.encode(toSend)
+            const to_send = new Uint8Array(encoded.length + MSG_DELIM.length)
+            to_send.set(encoded, 0)
+            to_send.set(MSG_DELIM, encoded.length)
+            socket.send(to_send)
         })
-
-        if (socket.readyState !== WebSocket.OPEN) {
-            console.log("MARGO ws is not open")
-            console.log("Reconnecting socket...")
-            // The connection is broken, so create a new websocket and await the result
-            return timeout_promise(create_ws(), 10000).then((new_socket) => {
-                // Once we have a new websocket, we try again:
-                socket = new_socket
-                return sendreceive(message_type, body)
-            })
-        }
-
-        // Every request has an ID (different from the client ID), so that Julia can send back responses to specific JS requests
-        const request_id = get_short_unqiue_id()
-
-        var toSend = {
-            type: message_type,
-            client_id: client_id,
-            request_id: request_id,
-            body: body,
-        }
-
-        sent_requests[request_id] = resolve
-
-        const encoded = msgpack.encode(toSend)
-        const to_send = new Uint8Array(encoded.length + MSG_DELIM.length)
-        to_send.set(encoded, 0)
-        to_send.set(MSG_DELIM, encoded.length)
-        socket.send(to_send)
-
-        return p
     }
 
     return {
