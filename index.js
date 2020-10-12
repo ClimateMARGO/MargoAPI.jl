@@ -2,6 +2,7 @@ import { margo_client } from "./connection.mjs"
 
 margo_client().then(({ sendreceive }) => {
     console.log("Connected!")
+    console.log(sendreceive)
 
     // var i = 0
     // setInterval(() => {
@@ -70,4 +71,31 @@ margo_client().then(({ sendreceive }) => {
 
     d_slider.addEventListener("input", update_opt)
     update_opt()
+
+
+    
+    const update_forward = () => {
+        sendreceive("forward_controls_temp", {
+            controls: {
+                M: [
+                    0.015621145775716586,
+                    0.06264691158067215,
+                    0.18452063449519915,
+                    0.39916155535584363,
+                    0.6341776996621064,
+                    0.74,
+                    0.6341776996621064,
+                    0.39916155535584363,
+                    0.18452063449519915,
+                    0.06264691158067215,
+                ],
+            },
+            economics: {
+                mitigate_cost: 1,
+            },
+        }).then(console.log)
+    }
+
+    update_forward()
+    window.u = update_forward
 })

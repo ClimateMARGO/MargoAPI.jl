@@ -41,8 +41,8 @@ version = "0.5.1"
 
 [[ClimateMARGO]]
 deps = ["Combinatorics", "Ipopt", "JSON2", "JuMP", "PyPlot", "Revise"]
-git-tree-sha1 = "1c9ecc0c386c0ef69fc0a0baa72f110b63ed4d49"
-repo-rev = "316af05"
+git-tree-sha1 = "7dbbb4f1feea1379c07b1465f8f9d7c1ffb56979"
+repo-rev = "5b90392"
 repo-url = "https://github.com/fonsp/ClimateMARGO.jl"
 uuid = "d3f62095-a717-45bf-aadc-ac9dfc258fa6"
 version = "0.1.2"
