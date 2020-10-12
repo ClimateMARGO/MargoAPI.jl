@@ -1,5 +1,6 @@
 include("./server.jl")
 
+ENV["JULIA_MARGO_LOAD_PYPLOT"] = "no thank you"
 import ClimateMARGO
 using ClimateMARGO.Models
 using ClimateMARGO.Optimization
