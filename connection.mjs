@@ -120,30 +120,32 @@ export const margo_client = async (address = document.location.protocol.replace(
                 console.log("MARGO ws is not open")
                 console.log("Reconnecting socket...")
                 // The connection is broken, so create a new websocket and await the result
-                return timeout_promise(create_ws(), 10000).then((new_socket) => {
-                    // Once we have a new websocket, we try again:
-                    socket = new_socket
-                    return sendreceive(message_type, body)
-                })
+                timeout_promise(create_ws(), 10000)
+                    .then((new_socket) => {
+                        // Once we have a new websocket, we try again:
+                        socket = new_socket
+                        return sendreceive(message_type, body)
+                    })
+                    .then(resolve)
+            } else {
+                // Every request has an ID (different from the client ID), so that Julia can send back responses to specific JS requests
+                const request_id = get_short_unqiue_id()
+
+                var toSend = {
+                    type: message_type,
+                    client_id: client_id,
+                    request_id: request_id,
+                    body: body,
+                }
+
+                sent_requests[request_id] = resolve
+
+                const encoded = msgpack.encode(toSend)
+                const to_send = new Uint8Array(encoded.length + MSG_DELIM.length)
+                to_send.set(encoded, 0)
+                to_send.set(MSG_DELIM, encoded.length)
+                socket.send(to_send)
             }
-
-            // Every request has an ID (different from the client ID), so that Julia can send back responses to specific JS requests
-            const request_id = get_short_unqiue_id()
-
-            var toSend = {
-                type: message_type,
-                client_id: client_id,
-                request_id: request_id,
-                body: body,
-            }
-
-            sent_requests[request_id] = resolve
-
-            const encoded = msgpack.encode(toSend)
-            const to_send = new Uint8Array(encoded.length + MSG_DELIM.length)
-            to_send.set(encoded, 0)
-            to_send.set(MSG_DELIM, encoded.length)
-            socket.send(to_send)
         })
     }
 
