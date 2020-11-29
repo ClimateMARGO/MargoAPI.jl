@@ -58,12 +58,28 @@ To update the web app at heroku, we simply _push a commit to the branch_. The
 
 _For more background on deploying Julia apps on heroku, I wrote this guide, intended for a more general audience: [fonsp/How to put Julia on heroku.md ](https://gist.github.com/fonsp/38965d7595a5d1060e27d6ca2084778d)._
 
-## Creating a new deployment
+### Creating a new deployment
 
 Read the guide above for some basics. Some notes specific for this project:
 
 -   You need to set a "Config Var" in the _Settings_ page of your heroku app: `JULIA_MARGO_LOAD_PYPLOT` with value `nothanks`. Trigger a rebuild afterwards by committing. [more info](https://github.com/ClimateMARGO/ClimateMARGO.jl/pull/53)
 -   We tried to minimize Julia's compile time for the first request, but you will still benefit from using a "Hobby Dyno" (7$/month) instead of a free dyno.
+
+## Running locally
+
+Clone the repository, navigate to this folder, and then:
+
+```
+julia --project run_server.jl 127.0.0.1 2345
+```
+
+Then go to `http://localhost:2345/index.html` in your browser. This is only really useful to check for errors, since it does not include the visualisations. To connect an observable notebook to a local running instance of the server, you can use `ngrok`. In a second terminal, install ngrok and run:
+
+```
+./ngrok http 2345
+```
+
+You can then change the cell `margo_url` in the notebook to the https url that gave you, instead of the default. Contact me (fons) for more info.
 
 # Contact
 

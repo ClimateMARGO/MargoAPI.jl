@@ -9,16 +9,25 @@
 
 <body>
     <h1>Hello</h1>
+    <p>To use our API, have a look at the <a href="https://observablehq.com/@margo">Observable notebooks</a>. This page is for internal testing.</p>
+    <p>Open the browser console. Durig the first 30 seconds after a server reboot, Julia is still compiling, so the API will not be responsive.</p>
 
-    <input id='a' type='range' min='0' max='1000'>
-    <input id='b' type='range' min='0' max='1000'>
+    <h3>Basic</h3>
+    <p>To test the response time.</p>
+    <p>a = <input id='a' type='range' min='0' max='1000'></p>
+    <p>b = <input id='b' type='range' min='0' max='1000'></p>
 
-    <input id='c' type='range' min='0' max='2000' disabled>
+    <p>a + b = <input id='c' type='range' min='0' max='2000' disabled></p>
     <br>
 
+    <h3>Optimization model</h3>
+    <p>Output in the dev console.</p>
     <p>0.0 C <input id='d' type='range' min='0' max='4' step='0.01'>
         4.0 C</p>
     <br>
+
+    <h3>Random uncompressed image</h3>
+    <p>To test the bandwidth. One image is 200kB.</p>
     <button id='repaint'>New image</button>
     <canvas id="painting" width="256" height="256"></canvas>
 </body>
