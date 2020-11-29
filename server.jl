@@ -86,9 +86,9 @@ function Base.readuntil(stream::HTTP.WebSockets.WebSocket, delim::Vector{UInt8})
     return data[1:end - length(delim)]
 end
 
-"""Start a Pluto server _synchronously_ (i.e. blocking call) on `http://localhost:[port]/`.
+"""Start a MARGO server _synchronously_ (i.e. blocking call) on `http://localhost:[port]/`.
 
-This will start a WebSocket server. Pluto Notebooks will be started dynamically (by user input)."""
+This will start a WebSocket server. MARGO Notebooks will be started dynamically (by user input)."""
 function run(host, port::Integer)
     hostIP = parse(Sockets.IPAddr, host)
     serversocket = Sockets.listen(hostIP, UInt16(port))
@@ -116,9 +116,6 @@ function run(host, port::Integer)
                                 rethrow(ex)
                             elseif ex isa HTTP.WebSockets.WebSocketError
                                 # that's fine!
-                            elseif ex isa InexactError
-                                # that's fine! this is a (fixed) HTTP.jl bug: https://github.com/JuliaWeb/HTTP.jl/issues/471
-                                # TODO: remove this switch
                             else
                                 bt = stacktrace(catch_backtrace())
                                 @warn "Reading WebSocket client stream failed for unknown reason:" exception = (ex, bt)
@@ -164,7 +161,7 @@ function run(host, port::Integer)
     end
     println("Go to $address to start writing ~ have fun!")
     println()
-    println("Press Ctrl+C in this terminal to stop Pluto")
+    println("Press Ctrl+C in this terminal to stop MARGO")
     println()
     
     
@@ -173,7 +170,7 @@ function run(host, port::Integer)
         wait(servertask)
     catch e
         if isa(e, InterruptException)
-            println("\n\nClosing Pluto... Restart Julia for a fresh session. \n\nHave a nice day! 🎈")
+            println("\n\nClosing MARGO... Restart Julia for a fresh session. \n\nHave a nice day! 🎈")
             close(serversocket)
         else
             rethrow(e)
