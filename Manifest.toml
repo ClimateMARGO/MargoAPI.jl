@@ -41,9 +41,11 @@ version = "0.5.1"
 
 [[ClimateMARGO]]
 deps = ["CompilerSupportLibraries_jll", "DiffResults", "DiffRules", "ForwardDiff", "Ipopt", "Ipopt_jll", "JSON2", "JuMP", "PyPlot", "Revise"]
-git-tree-sha1 = "5f806b73f11e50505ee8539bdbc933dbd0fb670e"
+git-tree-sha1 = "7d701c54d5c0b760733402b405e7cd129e5afb7f"
+repo-rev = "changes-for-MARGO-paper"
+repo-url = "https://github.com/ClimateMARGO/ClimateMARGO.jl.git"
 uuid = "d3f62095-a717-45bf-aadc-ac9dfc258fa6"
-version = "0.2.0"
+version = "0.2.1"
 
 [[CodeTracking]]
 deps = ["InteractiveUtils", "UUIDs"]
