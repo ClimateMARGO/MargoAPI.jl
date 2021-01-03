@@ -79,11 +79,11 @@ model_results(model::ClimateModel) = Dict(
     :controls => model.controls,
     :computed => Dict(
         :temperatures => Dict(
-            :baseline => T(model),
-            :M => T(model; M=true),
-            :MR => T(model; M=true, R=true),
-            :MRG => T(model; M=true, R=true, G=true),
-            :MRGA => T(model; M=true, R=true, G=true, A=true),
+            :baseline => T_adapt(model),
+            :M => T_adapt(model; M=true),
+            :MR => T_adapt(model; M=true, R=true),
+            :MRG => T_adapt(model; M=true, R=true, G=true),
+            :MRGA => T_adapt(model; M=true, R=true, G=true, A=true),
         ),
         :emissions => Dict(
             :baseline => effective_emissions(model),
