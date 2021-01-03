@@ -5,7 +5,8 @@ include("./main.jl")
 @info "Warm-up: optimizing"
 for tmax in 0.0:0.5:4.0
     # we go from infeasible to feasible, should trigger most of JuMP's relevant internals
-    result = opt_controls_temp(;opt_parameters=Dict("temp_goal" => tmax))
+    result = opt_controls_temp(;opt_parameters=Dict("temp_goal" => tmax, "temp_final" => tmax))
+    result = opt_controls_temp(;opt_parameters=Dict("temp_goal" => 999.0, "temp_final" => tmax))
     MsgPack.pack(result)
 end
 forward_controls_temp()
