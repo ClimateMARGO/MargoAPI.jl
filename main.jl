@@ -68,6 +68,8 @@ end
         setfieldconvert!(model.controls, translations[Symbol(k)], v)
     end
 
+    enforce_maxslope!(model.controls; dt=dt)
+
     return Dict(
         :model_parameters => model_parameters,
         model_results(model)...
@@ -123,6 +125,39 @@ function costs_dict(costs, model)
     )
 end
 
+function enforce_maxslope!(controls;
+    dt,
+    max_slope=Dict("mitigate"=>1. /40., "remove"=>1. /40., "geoeng"=>1. /80., "adapt"=> 0.)
+    )
+    controls.mitigate[1] = 0.0
+    controls.remove[1] = 0.0
+    controls.geoeng[1] = 0.0
+    # controls.adapt[1] = 0.0
+
+
+    for i in 2:length(controls.mitigate)
+        controls.mitigate[i] = clamp(
+            controls.mitigate[i], 
+            controls.mitigate[i-1] - max_slope["mitigate"]*dt, 
+            controls.mitigate[i-1] + max_slope["mitigate"]*dt
+        )
+        controls.remove[i] = clamp(
+            controls.remove[i], 
+            controls.remove[i-1] - max_slope["remove"]*dt, 
+            controls.remove[i-1] + max_slope["remove"]*dt
+        )
+        controls.geoeng[i] = clamp(
+            controls.geoeng[i], 
+            controls.geoeng[i-1] - max_slope["geoeng"]*dt, 
+            controls.geoeng[i-1] + max_slope["geoeng"]*dt
+        )
+        controls.adapt[i] = clamp(
+            controls.adapt[i], 
+            controls.adapt[i-1] - max_slope["adapt"]*dt, 
+            controls.adapt[i-1] + max_slope["adapt"]*dt
+        )
+    end
+end
 
 
 
